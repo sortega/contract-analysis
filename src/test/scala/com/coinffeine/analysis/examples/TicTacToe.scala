@@ -1,6 +1,7 @@
 package com.coinffeine.analysis.examples
 
 import com.coinffeine.analysis._
+import com.coinffeine.lineage.Lineaged
 
 object TicTacToe {
 
@@ -33,9 +34,9 @@ object TicTacToe {
     private def formatTable(table: Seq[Seq[String]]): String =
       table.map(formatRow).mkString("[", "|", "]")
 
-    val winPayoff: Payoff = 1
-    val losePayoff: Payoff = -1
-    val drawPayoff: Payoff = 0
+    val winPayoff: Payoff = Lineaged.value(1)
+    val losePayoff: Payoff = Lineaged.value(-1)
+    val drawPayoff: Payoff = Lineaged.value(0)
     override def payoffs = winner.fold(Payoffs(drawPayoff, drawPayoff)) { winner =>
       Payoffs(winner -> winPayoff, winner.otherPlayer -> losePayoff)
     }

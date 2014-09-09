@@ -2,12 +2,17 @@ package com.coinffeine.analysis.examples
 
 import com.coinffeine.analysis._
 import com.coinffeine.analysis.graphviz.GameTreeVisualization
+import com.coinffeine.lineage.Lineaged
 
 object PassTheParcel {
 
   sealed trait Action
   case object Pass extends Action
   case object Stop extends Action
+
+  val CollabRewards = Payoffs.fill(Lineaged.variable('collabReward, 2))
+  val StopReward: Payoff = Lineaged.variable('stopReward, 3)
+  val NoReward: Payoff = Lineaged.value(0)
 
   case class State(round: Int, maxRounds: Int, stopped: Boolean) extends GameState[Action] {
 
@@ -30,9 +35,9 @@ object PassTheParcel {
       }
     }
 
-    override def payoffs = Payoffs(
-      sam = 2 * passes + (if (hasStopped(Sam)) 3 else 0),
-      bob = 2 * passes + (if (hasStopped(Bob)) 3 else 0)
+    override def payoffs = CollabRewards.scaleBy(passes, passes) + Payoffs(
+      sam = if (hasStopped(Sam)) StopReward else NoReward,
+      bob = if (hasStopped(Bob)) StopReward else NoReward
     )
 
     private def passes: Int = if (stopped) round - 1 else round

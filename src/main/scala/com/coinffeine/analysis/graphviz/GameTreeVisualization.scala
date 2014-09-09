@@ -49,10 +49,10 @@ class GameTreeVisualization[Action, G <: Game[Action]](
     }
   }
 
-  private def labelOf(state: G#State) = "%s [%.2f, %.2f]".format(
+  private def labelOf(state: G#State) = "%s [%s = %.2f, %s = %.2f]".format(
     if (state.isFinal) "Final" else state.currentPlayer,
-    state.payoffs(Bob),
-    state.payoffs(Sam)
+    state.payoffs(Bob).expression.simplified, state.payoffs(Bob).value,
+    state.payoffs(Sam).expression.simplified, state.payoffs(Sam).value
   )
 
   private def printEdges() {

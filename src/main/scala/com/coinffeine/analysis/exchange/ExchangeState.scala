@@ -1,6 +1,7 @@
 package com.coinffeine.analysis.exchange
 
 import com.coinffeine.analysis._
+import com.coinffeine.lineage.Lineaged
 
 sealed trait ExchangeState extends GameState[ExchangeAction] {
   override def toString = "%s[%s]".format(currentName, description)
@@ -47,7 +48,7 @@ case class HandshakeState(override val currentPlayer: Player,
 case class AbortedState(override val currentPlayer: Player)(implicit val parameters: Parameters)
   extends FinalState("aborted", payoffs = parameters.initialValues)
 
-/** Game ended when timelocks of refund transactions expired and were published. */
+/** Game ended when timelock of refund transactions expired and were published. */
 case class TimedOutState(amountPaid: Payoff)(implicit parameters: Parameters)
   extends FinalState(
     description = s"timeout ($amountPaid paid)",
@@ -90,6 +91,8 @@ case class ExchangingState(
     txSigned: Int = 0,
     unresponsiveSam: Boolean = false)(implicit val parameters: Parameters) extends ExchangeState {
 
+  private val num = implicitly[Fractional[Payoff]]
+  import num._
   import parameters._
 
   require(stepsPaid >= 0 && stepsPaid <= steps)
@@ -104,7 +107,7 @@ case class ExchangingState(
   )
 
   private def bobActions = enabledActions(
-    (amountPaid < contractAmount && !unresponsiveSam) -> Pay,
+    (num.lt(amountPaid, contractAmount) && !unresponsiveSam) -> Pay,
     (txSigned > 0) -> Publish
   ) + Wait
 
@@ -138,8 +141,7 @@ case class ExchangingState(
     if (unresponsiveSam && currentPlayer == Sam) this
     else copy(currentPlayer = currentPlayer.otherPlayer)
 
-
-  def amountPaid: Payoff = stepsPaid * parameters.contractStep
+  def amountPaid: Payoff = Lineaged.value[BigDecimal](stepsPaid) * parameters.contractStep
 
   override protected def description: String = {
     val flag = if (unresponsiveSam) Some("unresponsive-sam") else None

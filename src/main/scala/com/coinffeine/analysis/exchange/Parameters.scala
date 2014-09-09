@@ -1,6 +1,7 @@
 package com.coinffeine.analysis.exchange
 
 import com.coinffeine.analysis.{Payoff, Payoffs}
+import com.coinffeine.lineage.Lineaged
 
 /** Parameters of an exchange game.
   *
@@ -13,29 +14,34 @@ import com.coinffeine.analysis.{Payoff, Payoffs}
   */
 case class Parameters(
   steps: Int = 10,
-  contractAmount: Payoff = 100,
-  consumerSurplus: BigDecimal = 0) {
+  contractAmount: Payoff = Lineaged.variable('contractAmount, 100),
+  consumerSurplus: Payoff = Lineaged.variable('consumerSurplus, 0)) {
+
+  private val num = implicitly[Fractional[Payoff]]
+  import num._
 
   require(steps > 0)
-  require(contractAmount > 0)
+  require(contractAmount.value > 0)
+
+  val noPayoff = Lineaged.value[BigDecimal](0)
 
   /** The amount of value that will be exchanged on each step */
-  val contractStep: Payoff = contractAmount / steps
+  val contractStep: Payoff = contractAmount / Lineaged.value[BigDecimal](steps)
 
   /** The amount of fiat each player needs in order to enter the exchange. We assume
     * 1 fiat unit = 1 BTC, since the specific exchange rate doesn't affect the mechanics
     * of the game.
     */
-  val fiatAmounts: Payoffs = Payoffs(bob = contractAmount, sam = 0)
+  val fiatAmounts: Payoffs = Payoffs(bob = contractAmount, sam = noPayoff)
 
   /** The deposit amount each players needs for the exchange */
   val depositAmounts: Payoffs = Payoffs(
-    bob = 2 * contractStep,
+    bob = contractStep * Lineaged.value(2),
     sam = contractStep)
 
   /** The amount of bitcoins that will be committed into the micropayment channel */
   val btcAmounts: Payoffs = depositAmounts + Payoffs(
-    bob = 0,
+    bob = noPayoff,
     sam = contractAmount
   )
 
@@ -45,17 +51,15 @@ case class Parameters(
 
   val refundPenalization: Payoffs = Payoffs(contractStep, contractStep)
 
-  val firstOffer = Payoffs(bob = 0, sam = contractAmount)
+  val firstOffer = Payoffs(bob = noPayoff, sam = contractAmount)
   val exchangeDelta = Payoffs(
     bob = contractStep,
     sam = -contractStep
 
   )
   /** The special, final offer Bob will offer Sam which includes getting back the deposits */
-  val finalOffer = Payoffs(
-    bob = contractAmount + 2 * contractStep,
-    sam = contractStep
-  )
+  val finalOffer = btcAmounts.switch + depositAmounts
+
   /** The sequence of micro payment channel transactions */
   val offers: Vector[Payoffs] =
     Vector.fill(steps - 1)(exchangeDelta).scanLeft(firstOffer)(_ + _) :+ finalOffer

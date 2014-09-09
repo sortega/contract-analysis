@@ -22,7 +22,7 @@ object Main {
   def standardGame() = game.plausibleTree(Set(StandardSam, StandardBob).map(_.allowedActions))
 
   def main(args: Array[String]) {
-    val tree = standardGame()
+    val tree = analyzeStandardSamVersusRationalPlayer()
 
     println("Game tree:")
     println(tree)
